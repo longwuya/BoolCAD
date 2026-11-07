@@ -1,0 +1,60 @@
+# Visual Studio / MSBuild
+.vs/
+*.VC.db
+*.VC.opendb
+*.sdf
+*.suo
+*.user
+*.ncb
+*.aps
+ipch/
+x64/
+x86/
+Debug/
+Release/
+
+# CMake
+build/
+out/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+vcpkg_installed/
+
+# Compiled binaries
+*.exe
+*.dll
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.obj
+*.o
+
+# The ANN runtime is intentionally vendored.
+!data/**/*.obj
+!utils/ann/lib/ANN.dll
+!utils/ann/lib/ANN.lib
+
+# Program output and experiment logs
+/*.xyz
+/*.off
+/*.obj
+/*.ply
+/*.log
+/*.out
+/*.err
+/*_iter*.xyz
+/intersection_lines*.obj
+/intersection.xyz
+/mix_files.obj
+/result*/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

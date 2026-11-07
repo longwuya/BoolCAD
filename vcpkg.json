@@ -1,0 +1,13 @@
+{
+  "name": "reconstruction-ena",
+  "version-string": "0.1.0",
+  "description": "Boolean-aware particle reconstruction and mesh optimization",
+  "builtin-baseline": "b472291f295551b7127359ea38fdd2ca092f6f1b",
+  "dependencies": [
+    {
+      "name": "cgal",
+      "default-features": false
+    },
+    "eigen3"
+  ]
+}
