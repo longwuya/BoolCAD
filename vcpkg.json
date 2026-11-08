@@ -1,38 +1,12 @@
 {
   "name": "reconstruction-ena",
-  "version-string": "0.1.0",
+  "version": "0.1.0",
   "description": "Boolean-aware particle reconstruction and mesh optimization",
-  "builtin-baseline": "b472291f295551b7127359ea38fdd2ca092f6f1b",
   "dependencies": [
     {
       "name": "cgal",
       "default-features": false
     },
     "eigen3"
-  ],
-  "overrides": [
-    {
-      "name": "boost",
-      "version": "1.90.0",
-      "port-version": 1
-    },
-    {
-      "name": "cgal",
-      "version": "6.1.1"
-    },
-    {
-      "name": "eigen3",
-      "version": "5.0.1"
-    },
-    {
-      "name": "gmp",
-      "version": "6.3.0",
-      "port-version": 3
-    },
-    {
-      "name": "mpfr",
-      "version": "4.2.2",
-      "port-version": 1
-    }
   ]
 }
