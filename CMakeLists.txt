@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(ReconstructionEna VERSION 0.1.0 LANGUAGES CXX C)
+project(BoolCAD VERSION 0.1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,7 +22,7 @@ find_package(OpenMP REQUIRED)
 
 add_subdirectory(utils/pqp)
 
-add_executable(Reconstruction_Ena
+add_executable(BoolCAD
     src/main.cpp
     src/BaseModel.cpp
     src/BooleanComputation.cpp
@@ -30,25 +30,25 @@ add_executable(Reconstruction_Ena
     src/Reconstruction_Basedon_Paricles_LBFGS.cpp
 )
 
-target_include_directories(Reconstruction_Ena PRIVATE
+target_include_directories(BoolCAD PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/utils/ann/include
     ${CMAKE_CURRENT_SOURCE_DIR}/utils/lbfgs
     ${CMAKE_CURRENT_SOURCE_DIR}/utils/pqp
 )
 
-target_compile_definitions(Reconstruction_Ena PRIVATE
+target_compile_definitions(BoolCAD PRIVATE
     CGAL_DO_NOT_USE_MPZF
     NOMINMAX
     _HAS_STD_BYTE=0
     WIN32_LEAN_AND_MEAN
 )
 
-target_sources(Reconstruction_Ena PRIVATE
+target_sources(BoolCAD PRIVATE
     utils/lbfgs/lbfgs.cpp
 )
 
-target_link_libraries(Reconstruction_Ena PRIVATE
+target_link_libraries(BoolCAD PRIVATE
     pqp
     CGAL::CGAL
     Eigen3::Eigen
@@ -76,24 +76,24 @@ if(WIN32)
         message(FATAL_ERROR "ANN.dll was not found at ${ANN_DLL}")
     endif()
 
-    target_link_libraries(Reconstruction_Ena PRIVATE ann opengl32 glu32)
+    target_link_libraries(BoolCAD PRIVATE ann opengl32 glu32)
 
-    add_custom_command(TARGET Reconstruction_Ena POST_BUILD
+    add_custom_command(TARGET BoolCAD POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${ANN_DLL}"
-            "$<TARGET_FILE_DIR:Reconstruction_Ena>/ANN.dll"
-        COMMENT "Copying ANN.dll next to Reconstruction_Ena.exe"
+            "$<TARGET_FILE_DIR:BoolCAD>/ANN.dll"
+        COMMENT "Copying ANN.dll next to BoolCAD.exe"
     )
 endif()
 
 if(MSVC)
-    target_compile_options(Reconstruction_Ena PRIVATE /W3 /fp:fast /bigobj)
-    target_compile_options(Reconstruction_Ena PRIVATE
+    target_compile_options(BoolCAD PRIVATE /W3 /fp:fast /bigobj)
+    target_compile_options(BoolCAD PRIVATE
         $<$<CONFIG:Release>:/O2>
     )
-    target_link_options(Reconstruction_Ena PRIVATE /STACK:10000000)
+    target_link_options(BoolCAD PRIVATE /STACK:10000000)
 endif()
 
-set_target_properties(Reconstruction_Ena PROPERTIES
+set_target_properties(BoolCAD PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )

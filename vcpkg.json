@@ -1,5 +1,5 @@
 {
-  "name": "reconstruction-ena",
+  "name": "boolcad",
   "version": "0.1.0",
   "description": "Boolean-aware particle reconstruction and mesh optimization",
   "dependencies": [

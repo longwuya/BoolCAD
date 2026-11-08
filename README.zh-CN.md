@@ -36,12 +36,12 @@ cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems
 cmake --build build --config Release
 ```
 
-当前 CMake 目标名称为 `Reconstruction_Ena`，生成的可执行文件位于 `build/bin/Release/Reconstruction_Ena.exe`，`ANN.dll` 会同时复制到该目录。
+当前 CMake 目标名称为 `BoolCAD`，生成的可执行文件位于 `build/bin/Release/BoolCAD.exe`，`ANN.dll` 会同时复制到该目录。
 
 ## 运行
 
 ```text
-Reconstruction_Ena.exe <模型A> <模型B> [采样数] [运算类型] [FACTORY_DECAY] [FACTOR_FOR_PARTICLE_SYSTEM]
+BoolCAD.exe <模型A> <模型B> [采样数] [运算类型] [FACTORY_DECAY] [FACTOR_FOR_PARTICLE_SYSTEM]
 ```
 
 | 参数 | 含义 |
@@ -58,7 +58,7 @@ Reconstruction_Ena.exe <模型A> <模型B> [采样数] [运算类型] [FACTORY_D
 在仓库根目录运行示例：
 
 ```powershell
-.\build\bin\Release\Reconstruction_Ena.exe `
+.\build\bin\Release\BoolCAD.exe `
   .\data\sample_ball `
   .\data\sample_block `
   2000 `

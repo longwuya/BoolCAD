@@ -36,12 +36,12 @@ cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems
 cmake --build build --config Release
 ```
 
-The CMake target is named `Reconstruction_Ena`. The executable is written to `build/bin/Release/Reconstruction_Ena.exe`, with `ANN.dll` copied beside it.
+The CMake target is named `BoolCAD`. The executable is written to `build/bin/Release/BoolCAD.exe`, with `ANN.dll` copied beside it.
 
 ## Run
 
 ```text
-Reconstruction_Ena.exe <MODEL_A> <MODEL_B> [SAMPLES] [OPERATION] [FACTORY_DECAY] [FACTOR_FOR_PARTICLE_SYSTEM]
+BoolCAD.exe <MODEL_A> <MODEL_B> [SAMPLES] [OPERATION] [FACTORY_DECAY] [FACTOR_FOR_PARTICLE_SYSTEM]
 ```
 
 | Parameter | Description |
@@ -58,7 +58,7 @@ Each input model must have matching `.obj` and `.off` files.
 Run this example from the repository root:
 
 ```powershell
-.\build\bin\Release\Reconstruction_Ena.exe `
+.\build\bin\Release\BoolCAD.exe `
   .\data\sample_ball `
   .\data\sample_block `
   2000 `
