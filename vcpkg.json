@@ -2,11 +2,18 @@
   "name": "boolcad",
   "version": "0.1.0",
   "description": "Boolean-aware particle reconstruction and mesh optimization",
+  "builtin-baseline": "ec48c11eae9448c8c6e7739d93e06fa2433aa95f",
   "dependencies": [
     {
       "name": "cgal",
       "default-features": false
     },
     "eigen3"
+  ],
+  "overrides": [
+    {
+      "name": "cgal",
+      "version": "6.1.1"
+    }
   ]
 }
