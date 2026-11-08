@@ -77,6 +77,8 @@ protected:
     ofstream statusReport;                // Optimization status report.
     int maxIteration;                     // Last recorded iteration count.
     lbfgsfloatval_t last_result[10];      // Results from the latest iteration.
+    std::string m_lastOutputPath;
+    int m_lastOutputPointCount = 0;
 
 protected:
     /*------------------------------------------------------------------
@@ -192,7 +194,8 @@ public:
     arg0 - Executable name used in folder construction.
     arg1 - First launch argument used in folder construction.
     nSamples - Number of sample points.
-    factor_for_particle_system - Particle-system constraint weight.
+    factor_for_particle_system - Particle kernel width factor.
+    factor_decay - Per-iteration particle-energy decay factor.
     factor_for_intersection - Intersection constraint weight.
     lamdaForBalancingParticleSystemAndDistanceConstraints - Balance coefficient.
     e_param_for_seg - Segmentation parameter, used only in the filename.
@@ -213,11 +216,19 @@ public:
         return  std::to_string(n);
     }
 
+    const std::string& GetLastOutputPath() const {
+        return m_lastOutputPath;
+    }
+
+    int GetLastOutputPointCount() const {
+        return m_lastOutputPointCount;
+    }
+
     virtual void run(
         const std::string& folder_name, // Output folder.
         int nSamples,
         double factor_for_particle_system,
-        double lamdaForBalancingParticleSystemAndDistanceConstraints,
+        double factor_decay,
         double intersection_rate,   // Filename metadata only; computation occurs in BooleanComputation.
         double surface_point_num,   // Filename metadata only; computation occurs in BooleanComputation.
         double sigma_rate,   // Filename metadata only; computation occurs in BooleanComputation.
@@ -274,13 +285,10 @@ public:
 
         // Build the final output filename.
         fileName += ("surn=" + name_tran(surface_point_num) +
-            "_irate=" + name_tran2(intersection_rate) +
-            "_ffps=" + name_tran2(factor_for_particle_system) +
-            "_ebottom=" + name_tran2(e_param_bottom) +
-            "_sigma=" + name_tran2(sigma_rate) +
             "_it=" + name_tran(maxIteration) +
             "_time=" + name_tran2(running_time) +
-            "_Err=" + name_tran4(last_result[2]) +
+            "_decay=" + name_tran2(factor_decay) +
+            "_ffps=" + name_tran2(factor_for_particle_system) +
             ".xyz");
 
         // Write the optimized point cloud.
@@ -317,6 +325,11 @@ public:
 
         outputReconstructionModel.close();
         //statusReport.close();
+
+        m_lastOutputPath =
+            std::filesystem::absolute(fileName).lexically_normal().string();
+        m_lastOutputPointCount =
+            static_cast<int>(m_variables.size() / 3);
 
         cerr << "Optimization results saved to: " << fileName << endl;
 

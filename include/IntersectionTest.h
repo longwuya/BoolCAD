@@ -306,8 +306,6 @@ public:
 
 
 
-        export_polylines_to_obj(intersection_segments, "intersection_lines_original.obj");
-
         for (auto& poly : intersection_segments) {
             if (poly.size() < 2) continue;
 
@@ -353,13 +351,6 @@ public:
             sampled.push_back(poly.back());
             poly.swap(sampled); // 原地替换
         }
-
-        // 将采样后的所有折线写入 "intersection.xyz"
-        export_intersection_to_xyz(intersection_segments, "intersection.xyz");
-
-
-        export_polylines_to_obj(intersection_segments, "intersection_lines.obj");
-
 
         return 0;
     }

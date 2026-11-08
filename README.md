@@ -1,88 +1,70 @@
-# Reconstruction_Ena
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-C++17 implementation of Boolean-aware particle reconstruction. The optimizer
-samples the input surfaces, computes intersection constraints, projects
-particles onto the resulting surfaces, and minimizes a combined particle
-spacing and normal-consistency energy with L-BFGS.
+# BoolCAD
 
-## Repository layout
+**BoolCAD: Boolean-Aware Particle Reconstruction and Mesh Optimization**
 
-```text
-src/          Core reconstruction and Boolean-operation code
-include/      Project headers
-utils/ann/    Vendored ANN headers and Windows runtime
-utils/lbfgs/  Vendored L-BFGS implementation
-utils/pqp/    Vendored PQP proximity-query library
-data/         Small input pair for a smoke test
-```
+BoolCAD reconstructs the result of Boolean operations on two triangle meshes by sampling surface particles, extracting intersection constraints, projecting particles onto the resulting surface, and minimizing a combined distribution and normal-consistency energy with L-BFGS.
 
-## Requirements
+## Project Links
 
-- Windows x64
-- Visual Studio 2022 with the C++ desktop workload
-- CMake 3.20 or newer
-- vcpkg
-- CGAL, Eigen3 and OpenMP
+- Project homepage:
+- Code repository: https://github.com/longwuya/BoolCAD
+- Paper:
+- Video:
 
-The source distribution includes a precompiled ANN library for Windows x64.
+## Requirements and Dependencies
+
+- Windows x64 and a compiler with C++17 support.
+- CMake 3.20 or later.
+- vcpkg.
+- CGAL, Eigen3, and OpenMP.
+
+The repository includes ANN, L-BFGS, and PQP components. The current build configuration uses a precompiled ANN library for Windows.
 
 ## Build
 
-Set `VCPKG_ROOT` to the directory containing `vcpkg.exe`:
+Run the following commands in PowerShell. Install CMake, vcpkg, and the Visual Studio C++ build tools first, and set the `VCPKG_ROOT` environment variable to the vcpkg installation directory.
 
 ```powershell
-$env:VCPKG_ROOT = "D:\vcpkg\vcpkg"
+git clone https://github.com/longwuya/BoolCAD.git
+cd BoolCAD
 
-cmake -B build -S . -A x64 `
-  -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"
+& "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows
 
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -A x64
 cmake --build build --config Release
 ```
 
-The executable is written to `build/bin/Release/Reconstruction_Ena.exe`, with
-`ANN.dll` copied beside it.
+The CMake target is named `Reconstruction_Ena`. The executable is written to `build/bin/Release/Reconstruction_Ena.exe`, with `ANN.dll` copied beside it.
 
 ## Run
 
-The two model arguments are paths without an extension. Each model must have
-matching `.obj` and `.off` files.
-
 ```text
-Reconstruction_Ena.exe <MODEL_A> <MODEL_B> [SAMPLES] [OPERATION]
+Reconstruction_Ena.exe <MODEL_A> <MODEL_B> [SAMPLES] [OPERATION] [FACTORY_DECAY] [FACTOR_FOR_PARTICLE_SYSTEM]
 ```
 
-- `MODEL_A`, `MODEL_B`: input paths without `.obj` or `.off`.
-- `SAMPLES`: target particle count; default `1000`.
-- `OPERATION`: `union`, `intersection`, or `difference` (also accepted as
-  `1`, `2`, or `3`); default `union`.
+| Parameter | Description |
+| --- | --- |
+| `MODEL_A` | First input path, without the `.obj` or `.off` extension. |
+| `MODEL_B` | Second input path, without the `.obj` or `.off` extension. |
+| `SAMPLES` | Target number of sample points. Default: `2000`. |
+| `OPERATION` | `union`, `intersection`, or `difference`; `1`, `2`, and `3` are also accepted. Default: `union`. |
+| `FACTORY_DECAY` | Particle-energy decay coefficient. Default: `0.98`. |
+| `FACTOR_FOR_PARTICLE_SYSTEM` | Particle kernel width factor. Default: `0.30`. |
 
-The following values are fixed by the implementation:
+Each input model must have matching `.obj` and `.off` files.
 
-- Intersection sampling rate: `0.01`
-- Intersection-region weight factor (`sigma_rate`): `6.0`
-- Normal-consistency gain: `5.0`
-- Particle-system factor: `0.30`
-
-Run the bundled example from the repository root:
+Run this example from the repository root:
 
 ```powershell
 .\build\bin\Release\Reconstruction_Ena.exe `
   .\data\sample_ball `
   .\data\sample_block `
-  1000 `
-  union
+  2000 `
+  union `
+  0.98 `
+  0.30
 ```
 
-The program writes intersection diagnostics in the working directory and the
-optimized point cloud in a timestamped result directory.
-
-Set `RECONSTRUCTION_PROFILE=1` to print phase-level timing information. Set
-`RECONSTRUCTION_SILENT=1` to suppress per-iteration console output.
-
-## Notes
-
-- The current implementation targets Windows x64 because it uses the Windows
-  API and a precompiled ANN library.
-- `ANN.dll` must remain next to the executable at runtime.
-- Large experimental data, generated meshes, logs, and benchmark snapshots are
-  intentionally excluded from this repository.
+Example input meshes are available in `data/`. Only the final optimized `.xyz` point cloud is saved, in a timestamped output directory. The program produces no intermediate files or console logs during execution; when finished, it prints the output path, actual point count, and total runtime.

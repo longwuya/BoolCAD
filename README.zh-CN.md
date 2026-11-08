@@ -1,54 +1,59 @@
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-# Reconstruction_Ena
+# BoolCAD
 
-这是当前最终优化代码的整理版本，面向两个三角网格的布尔运算重建。程序先在输入表面上采样，提取网格交线并施加交线约束，再把粒子投影到布尔结果表面，最后通过 L-BFGS 优化粒子分布与法向一致性。
+**BoolCAD：面向布尔运算的粒子重建与网格优化**
 
-## 目录
+BoolCAD 通过对两个三角网格表面进行粒子采样、提取交线约束、将粒子投影到布尔结果表面，并使用 L-BFGS 优化粒子分布与法向一致性，重建两个网格之间的布尔运算结果。
 
-```text
-src/          核心重建和布尔运算代码
-include/      项目头文件
-utils/ann/    内置 ANN 头文件和 Windows 运行库
-utils/lbfgs/  内置 L-BFGS 实现
-utils/pqp/    内置 PQP 距离查询库
-data/         快速验证用的小规模模型
-```
+## 项目地址
 
-## 环境
+- 项目主页：
+- 代码仓库：https://github.com/longwuya/BoolCAD
+- 论文：
+- 视频：
 
-- Windows x64
-- Visual Studio 2022，安装“使用 C++ 的桌面开发”
-- CMake 3.20 或更新版本
-- vcpkg
-- CGAL、Eigen3、OpenMP
+## 环境与依赖
 
-仓库内附带 Windows x64 版 ANN 预编译库。
+- Windows x64 与支持 C++17 的编译器。
+- CMake 3.20 或更新版本。
+- vcpkg。
+- CGAL、Eigen3、OpenMP。
+
+仓库内包含 ANN、L-BFGS 和 PQP 等组件。当前构建配置使用 Windows 版 ANN 预编译库。
 
 ## 编译
 
-先将 `VCPKG_ROOT` 设置为包含 `vcpkg.exe` 的目录：
+以下命令在 PowerShell 中执行。请先安装 CMake、vcpkg 和 Visual Studio C++ 构建工具，并将 `VCPKG_ROOT` 环境变量设置为 vcpkg 所在目录。
 
 ```powershell
-$env:VCPKG_ROOT = "D:\vcpkg\vcpkg"
+git clone https://github.com/longwuya/BoolCAD.git
+cd BoolCAD
 
-cmake -B build -S . -A x64 `
-  -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"
+& "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows
 
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -A x64
 cmake --build build --config Release
 ```
 
-生成文件位于 `build/bin/Release/Reconstruction_Ena.exe`，`ANN.dll` 会同时复制到该目录。
+当前 CMake 目标名称为 `Reconstruction_Ena`，生成的可执行文件位于 `build/bin/Release/Reconstruction_Ena.exe`，`ANN.dll` 会同时复制到该目录。
 
 ## 运行
 
-两个模型参数都不带扩展名；每个模型需要同名的 `.obj` 和 `.off` 文件。
-
 ```text
-Reconstruction_Ena.exe <模型A> <模型B> [采样数] [运算类型]
+Reconstruction_Ena.exe <模型A> <模型B> [采样数] [运算类型] [FACTORY_DECAY] [FACTOR_FOR_PARTICLE_SYSTEM]
 ```
 
-交线采样率固定为 `0.01`，交线区域权重 `sigma_rate` 固定为 `6`，法向一致性权重倍数固定为 `5`，默认执行并集运算。
+| 参数 | 含义 |
+| --- | --- |
+| `模型A` | 第一个输入模型路径，不带 `.obj` 或 `.off` 扩展名。 |
+| `模型B` | 第二个输入模型路径，不带 `.obj` 或 `.off` 扩展名。 |
+| `采样数` | 目标采样点数量，默认值为 `2000`。 |
+| `运算类型` | 支持 `union`、`intersection`、`difference`，也支持 `1`、`2`、`3`。默认值为 `union`。 |
+| `FACTORY_DECAY` | 粒子能量衰减系数，默认值为 `0.98`。 |
+| `FACTOR_FOR_PARTICLE_SYSTEM` | 粒子核宽度系数，默认值为 `0.30`。 |
+
+每个输入模型都需要同名的 `.obj` 和 `.off` 文件。
 
 在仓库根目录运行示例：
 
@@ -56,18 +61,10 @@ Reconstruction_Ena.exe <模型A> <模型B> [采样数] [运算类型]
 .\build\bin\Release\Reconstruction_Ena.exe `
   .\data\sample_ball `
   .\data\sample_block `
-  1000 `
-  union
+  2000 `
+  union `
+  0.98 `
+  0.30
 ```
 
-`OPERATION` 支持 `union`、`intersection`、`difference`，也支持 `1`、`2`、`3`；不填写时默认使用并集。
-
-程序会在工作目录写入交线诊断文件，并在带时间戳的目录中输出优化后的点云。
-
-设置 `RECONSTRUCTION_PROFILE=1` 可以输出各阶段的耗时信息；设置 `RECONSTRUCTION_SILENT=1` 可以关闭每次迭代的控制台输出。
-
-## 说明
-
-- 当前代码依赖 Windows API 和预编译 ANN，仅支持 Windows x64。
-- `ANN.dll` 必须与可执行文件位于同一目录。
-- 大型实验数据、生成的网格、日志和性能测试快照不会上传到仓库。
+示例输入网格位于 `data/` 目录。程序只保存最终优化后的 `.xyz` 点云，输出到带时间戳的目录；运行过程中不生成中间文件，也不输出控制台日志。运行结束后会显示最终文件路径、实际点数和总运行时间。

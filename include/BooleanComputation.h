@@ -245,7 +245,8 @@ public:
 		std::vector<std::vector<Point_3>> intersection_segments, // Intersection polylines.
 		double i_intersection_rate,
 		double e_e_param_bottom,
-		double s_sigma_rate
+		double s_sigma_rate,
+		double factor_decay
 		);
 	int get_sample_num();
 	double e_density_calculation_func(double d, double sigma, double area);

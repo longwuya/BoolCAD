@@ -15,6 +15,7 @@ Release/
 
 # CMake
 build/
+build-local/
 out/
 cmake-build-*/
 CMakeCache.txt

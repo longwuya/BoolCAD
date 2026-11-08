@@ -125,7 +125,8 @@ BooleanComputation::BooleanComputation(
     std::vector<std::vector<Point_3>> intersection_segments,
     double i_intersection_rate,
     double e_e_param_bottom,
-    double s_sigma_rate
+    double s_sigma_rate,
+    double factor_decay
 ) : Reconstruction_Basedon_Paricles_LBFGS
 (nSamples,
     factor_for_particle_system,
@@ -144,6 +145,7 @@ BooleanComputation::BooleanComputation(
     e_param_bottom(e_e_param_bottom),
     sigma_rate(s_sigma_rate)
 {
+    lambda_balance = factor_decay;
     // Input models are copied once during member initialization.
     m_ann_bucket_size = ReadEnvironmentInt(
         "RECONSTRUCTION_ANN_BUCKET", m_ann_bucket_size, 1, 64);
@@ -193,19 +195,6 @@ BooleanComputation::BooleanComputation(
     // Generate initial surface samples.
     vector<Point> samples = GetInitialSamplesOnSurface(nSamples); // Includes fixed optimization points.
 
-    std::cout << " 表面初始采样点的数目: " << samples.size() << endl;
-
-    if (IterationConsoleOutputEnabled()) {
-        ofstream outputReconstructionModel1("sample_origin.xyz");
-        for (Point p : samples) {
-            outputReconstructionModel1
-                << p.x() << " " << p.y() << " " << p.z() << endl;
-        }
-    }
-
-
-
-
     if (booleanType == 1) {
         samples = GetValidSamplesByUnion(samples, m_obbtree1, m_obbtree2);
     }
@@ -215,12 +204,6 @@ BooleanComputation::BooleanComputation(
     else if (booleanType == 3) {
         samples = GetValidSamplesBySubtraction(samples, m_obbtree1, m_obbtree2);
     }
-
-    std::cout << "合法性筛选后, 采样点的数目: " << samples.size() << endl;
-
-
-
-
 
     // Store samples as xyz triples in the optimization variable array.
     // Fixed points can be appended directly to samples.
@@ -258,10 +241,6 @@ BooleanComputation::BooleanComputation(
     m_enaNearbyTriangles.resize(m_nSamples);
     m_lastParticleNeighborPositions.resize(m_nSamples * 3, 0.0);
     m_lastEnaNeighborPositions.resize(m_nSamples * 3, 0.0);
-    cout << "粒子系统中总点?? " << m_variables.size() / 3 << endl;
-
-
-
     // Flatten intersection polylines; a single point becomes a zero-length segment.
     m_intersection_segments_flat.clear();
     for (const auto& poly : intersection_seg) {
@@ -282,62 +261,10 @@ BooleanComputation::BooleanComputation(
     m_aabb_tree->accelerate_distance_queries();
 
 
-    if (IterationConsoleOutputEnabled()) {
-        ofstream outputReconstructionModel2("sample_after_check.xyz");
-        for (vector<double>::iterator it = m_variables.begin();
-             it != m_variables.end();
-             it += 3) {
-            outputReconstructionModel2
-                << *it << " " << *(it + 1) << " " << *(it + 2) << endl;
-        }
-    }
-
-
     // Select valid triangles for the E_NA integral.
     BooleanComputation::initFacesForENA();
     BuildENAKDTree();
     prepareENAIntegralData();
-    // Debug: write the selected triangles.
-    if (IterationConsoleOutputEnabled()) {
-        int numFaces = m_inputModel[0].GetNumOfFaces();
-
-        // Collect vertices of valid triangles and remap them to contiguous OBJ indices.
-        vector<CPoint3D> validVertices;
-        vector<array<int, 3>> validFaces;
-        unordered_map<int, int> oldToNewIdx;
-
-        for (int i = 0; i < numFaces; ++i) {
-            if (!m_faceValidForENA[i]) continue;
-
-            auto face = m_inputModel[0].Face(i);
-            int newIdx[3];
-
-            for (int j = 0; j < 3; ++j) {
-                int oldIdx = face[j];
-                if (oldToNewIdx.find(oldIdx) == oldToNewIdx.end()) {
-                    oldToNewIdx[oldIdx] = validVertices.size();
-                    validVertices.push_back(m_inputModel[0].Vert(oldIdx));
-                }
-                newIdx[j] = oldToNewIdx[oldIdx] + 1;  // OBJ indices are one-based.
-            }
-
-            validFaces.push_back({ newIdx[0], newIdx[1], newIdx[2] });
-        }
-
-        // Write the OBJ file.
-        string outputFile = "ena_valid_model.obj";
-        ofstream out(outputFile);
-        if (out.is_open()) {
-            for (const auto& v : validVertices) {
-                out << "v " << v.x << " " << v.y << " " << v.z << endl;
-            }
-            for (const auto& f : validFaces) {
-                out << "f " << f[0] << " " << f[1] << " " << f[2] << endl;
-            }
-            out.close();
-            cout << "E_NA 有效模型已输出到: " << outputFile << endl;
-        }
-    }
 }
 
 // Release the ANN-owned resources.
@@ -1080,7 +1007,6 @@ lbfgsfloatval_t BooleanComputation::evaluate(
          {
              lambda_NA = fx_NA > 1e-30 ? fx_PS / fx_NA : 1.0;
              lambda_NA *= m_lambda_ofnoraml_penalty;
-             lambda_balance = 0.98;
          }
          if (m_iter_cnt >= 2)
          {

@@ -10,7 +10,10 @@
 #include <CGAL/boost/graph/convert_nef_polyhedron_to_polygon_mesh.h>
 #include <algorithm>
 #include <cctype>
+#include <chrono>
+#include <iomanip>
 #include <stdexcept>
+#include <streambuf>
 
 using namespace std;
 
@@ -25,8 +28,12 @@ typedef Kernel::Segment_3 Segment_3;
 /* Run a Boolean operation between two 3D models and optimize the result. */
 
 // Function declarations.
-void MixObjModel(string fileName1, string fileName2);  // Merge two OBJ meshes.
-void PreLoad(CBaseModel* inputModel, int booleanType, string fileName1, string fileName2);  // Preload input meshes.
+void PreLoad(CBaseModel* inputModel, int booleanType, string fileName1, string fileName2);
+
+struct FinalResultInfo {
+    std::string outputPath;
+    int pointCount = 0;
+};
 
 // Utility function: return the filename component of a path.
 std::string extractAfterLastSlash(const std::string& input) {
@@ -86,73 +93,13 @@ bool createDirectory(const std::string& path) {
 // Preload meshes for the Boolean operation A OP B.
 void PreLoad(CBaseModel* inputModel, int booleanType, string fileName1, string fileName2)
 {
-    MixObjModel(fileName1, fileName2);  // Generate the combined mesh file.
-    cout << "MixObjModel finished" << endl;
-    inputModel[0] = CBaseModel("mix_files.obj");  // Load the combined mesh.
     inputModel[1] = CBaseModel(fileName1);
     inputModel[2] = CBaseModel(fileName2);
-    // Load mesh data.
-    inputModel[0].LoadModel();
     inputModel[1].LoadModel();
     inputModel[2].LoadModel();
-}
-
-// Merge two OBJ meshes.
-void MixObjModel(string fileName1, string fileName2)
-{
-    // Open the input files.
-    ifstream inputFile1(fileName1);
-    ifstream inputFile2(fileName2);
-    ofstream outputFile("mix_files.obj");  // Combined OBJ output.
-    
-    vector<CPoint3D> mixModelVertices;  // Combined vertex set.
-    vector<CPoint3D> mixModelFaces;     // Combined face set.
-
-
-
-
-    // Read model 1.
-    string str1, str2, str3;
-    while (!inputFile1.eof()) {
-        inputFile1 >> str1;
-        if (str1 == "v") {  // Vertex record.
-            inputFile1 >> str1 >> str2 >> str3;
-            mixModelVertices.push_back(CPoint3D(atof(str1.c_str()), atof(str2.c_str()), atof(str3.c_str())));
-        }
-        else if (str1 == "f") {  // Face record.
-            inputFile1 >> str1 >> str2 >> str3;
-            mixModelFaces.push_back(CPoint3D(atof(str1.c_str()), atof(str2.c_str()), atof(str3.c_str())));
-        }
-    }
-    inputFile1.close();
-    
-    
-    // Read model 2 and offset its face indices.
-    int mode1Size = mixModelVertices.size();  // Number of vertices in model 1.
-    while (!inputFile2.eof()) {
-        inputFile2 >> str1;
-        if (str1 == "v") {
-            inputFile2 >> str1 >> str2 >> str3;
-            mixModelVertices.push_back(CPoint3D(atof(str1.c_str()), atof(str2.c_str()), atof(str3.c_str())));
-        }
-        else if (str1 == "f") {
-            inputFile2 >> str1 >> str2 >> str3;
-            // Offset face indices by the vertex count of model 1.
-            mixModelFaces.push_back(CPoint3D(
-                atof(str1.c_str()) + mode1Size,
-                atof(str2.c_str()) + mode1Size,
-                atof(str3.c_str()) + mode1Size
-            ));
-        }
-    }
-    inputFile2.close();
-
-    // Write the combined OBJ mesh.
-    for (auto v : mixModelVertices)
-        outputFile << "v " << v.x << " " << v.y << " " << v.z << endl;
-    for (auto f : mixModelFaces)
-        outputFile << "f " << (int)f.x << " " << (int)f.y << " " << (int)f.z << endl;
-    outputFile.close();
+    inputModel[0] = CBaseModel();
+    inputModel[0].AppendModel(inputModel[1]);
+    inputModel[0].AppendModel(inputModel[2]);
 }
 
 // Resolve the Boolean operation from the optional fourth CLI argument.
@@ -182,12 +129,14 @@ int resolveBooleanType(int argc, char** argv)
 }
 
 // Approximate Boolean reconstruction entry point.
-void main_approximate(int argc, char** argv)
+FinalResultInfo main_approximate(int argc, char** argv)
 {
-    const int base_point_num = (argc > 3) ? std::stoi(argv[3]) : 1000;
+    const int base_point_num = (argc > 3) ? std::stoi(argv[3]) : 2000;
+    const double factor_decay = (argc > 5) ? std::stod(argv[5]) : 0.98;
+    const double factor_for_particle_system =
+        (argc > 6) ? std::stod(argv[6]) : 0.30;
     constexpr double intersection_rate = 0.01;
     constexpr double sigma_rate = 6.0;
-    constexpr double factor_for_particle_system = 0.30;
     constexpr double lambda_penalty = 0.0;
     constexpr double lambda_normal = 5.0;
     constexpr double sample_radius = 1.0;
@@ -238,25 +187,52 @@ void main_approximate(int argc, char** argv)
         intersection_segments,
         intersection_rate,
         e_param_bottom,
-        sigma_rate
+        sigma_rate,
+        factor_decay
     );
     cout << " check point 3:\n";
     booleanComputation.run(
         folderName,
         base_point_num,
         factor_for_particle_system,
-        lambda_penalty,
+        factor_decay,
         intersection_rate,
         booleanComputation.get_sample_num(),
         sigma_rate,
         e_param_bottom
     );
+
+    return {
+        booleanComputation.GetLastOutputPath(),
+        booleanComputation.GetLastOutputPointCount()
+    };
 }
 
 
 // Program entry point.
 int main(int argc, char** argv) {
-    main_approximate(argc, argv);
+    class NullStreamBuffer final : public std::streambuf {
+    protected:
+        int_type overflow(int_type ch) override {
+            return traits_type::not_eof(ch);
+        }
+    };
+    static NullStreamBuffer nullBuffer;
+    auto* originalCout = std::cout.rdbuf();
+    std::cout.rdbuf(&nullBuffer);
+    std::cerr.rdbuf(&nullBuffer);
+    std::clog.rdbuf(&nullBuffer);
+
+    const auto start = std::chrono::steady_clock::now();
+    const FinalResultInfo result = main_approximate(argc, argv);
+    const double elapsedSeconds = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - start).count();
+
+    std::cout.rdbuf(originalCout);
+    std::cout << "Output path: " << result.outputPath << '\n'
+              << "Actual points: " << result.pointCount << '\n'
+              << "Elapsed time: " << std::fixed << std::setprecision(3)
+              << elapsedSeconds << " s" << std::endl;
     return 0;
 }
 

@@ -80,6 +80,21 @@ public:
 	double GetScale() const {return m_scale;}
 	void SetFaces(const vector<CBaseModel::CFace>& faces);
 	const vector<CBaseModel::CFace>& GetFaces() const;
+	void AppendModel(const CBaseModel& other)
+	{
+		const int vertexOffset = static_cast<int>(m_Verts.size());
+		m_Verts.insert(m_Verts.end(), other.m_Verts.begin(), other.m_Verts.end());
+		m_Faces.reserve(m_Faces.size() + other.m_Faces.size());
+		for (const CFace& face : other.m_Faces)
+		{
+			m_Faces.emplace_back(
+				face[0] + vertexOffset,
+				face[1] + vertexOffset,
+				face[2] + vertexOffset);
+		}
+		ComputeScaleAndNormals();
+		BuildVertexToFaceMapping();
+	}
 
 	void BuildVertexToFaceMapping();
 	const std::vector<int>& GetFacesFromVertex(int vertIndex) const;
