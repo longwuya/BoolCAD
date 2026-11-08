@@ -9,5 +9,30 @@
       "default-features": false
     },
     "eigen3"
+  ],
+  "overrides": [
+    {
+      "name": "boost",
+      "version": "1.90.0",
+      "port-version": 1
+    },
+    {
+      "name": "cgal",
+      "version": "6.1.1"
+    },
+    {
+      "name": "eigen3",
+      "version": "5.0.1"
+    },
+    {
+      "name": "gmp",
+      "version": "6.3.0",
+      "port-version": 3
+    },
+    {
+      "name": "mpfr",
+      "version": "4.2.2",
+      "port-version": 1
+    }
   ]
 }
