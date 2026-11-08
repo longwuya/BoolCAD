@@ -59,8 +59,8 @@ Run this example from the repository root:
 
 ```powershell
 .\build\bin\Release\BoolCAD.exe `
-  .\data\sample_ball `
-  .\data\sample_block `
+  .\data\sample_A `
+  .\data\sample_B `
   2000 `
   union `
   0.98 `

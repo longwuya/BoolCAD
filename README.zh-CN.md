@@ -59,8 +59,8 @@ BoolCAD.exe <模型A> <模型B> [采样数] [运算类型] [FACTORY_DECAY] [FACT
 
 ```powershell
 .\build\bin\Release\BoolCAD.exe `
-  .\data\sample_ball `
-  .\data\sample_block `
+  .\data\sample_A `
+  .\data\sample_B `
   2000 `
   union `
   0.98 `
