@@ -45,8 +45,10 @@ cmake --build build --config Release
 两个模型参数都不带扩展名；每个模型需要同名的 `.obj` 和 `.off` 文件。
 
 ```text
-Reconstruction_Ena.exe <模型A> <模型B> [采样数] [交线采样率] [交线权重] [运算类型]
+Reconstruction_Ena.exe <模型A> <模型B> [采样数] [运算类型]
 ```
+
+交线采样率固定为 `0.01`，交线区域权重 `sigma_rate` 固定为 `6`，法向一致性权重倍数固定为 `5`，默认执行并集运算。
 
 在仓库根目录运行示例：
 
@@ -55,12 +57,10 @@ Reconstruction_Ena.exe <模型A> <模型B> [采样数] [交线采样率] [交线
   .\data\sample_ball `
   .\data\sample_block `
   1000 `
-  0.5 `
-  6 `
   union
 ```
 
-`OPERATION` 支持 `union`、`intersection`、`difference`，也支持 `1`、`2`、`3`。
+`OPERATION` 支持 `union`、`intersection`、`difference`，也支持 `1`、`2`、`3`；不填写时默认使用并集。
 
 程序会在工作目录写入交线诊断文件，并在带时间戳的目录中输出优化后的点云。
 

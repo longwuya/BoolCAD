@@ -48,15 +48,20 @@ The two model arguments are paths without an extension. Each model must have
 matching `.obj` and `.off` files.
 
 ```text
-Reconstruction_Ena.exe <MODEL_A> <MODEL_B> [SAMPLES] [RATE] [SIGMA] [OPERATION]
+Reconstruction_Ena.exe <MODEL_A> <MODEL_B> [SAMPLES] [OPERATION]
 ```
 
 - `MODEL_A`, `MODEL_B`: input paths without `.obj` or `.off`.
 - `SAMPLES`: target particle count; default `1000`.
-- `RATE`: intersection sampling rate; default `0.0`.
-- `SIGMA`: intersection-region weight factor; default `6.0`.
 - `OPERATION`: `union`, `intersection`, or `difference` (also accepted as
-  `1`, `2`, or `3`); default `difference`.
+  `1`, `2`, or `3`); default `union`.
+
+The following values are fixed by the implementation:
+
+- Intersection sampling rate: `0.01`
+- Intersection-region weight factor (`sigma_rate`): `6.0`
+- Normal-consistency gain: `5.0`
+- Particle-system factor: `0.30`
 
 Run the bundled example from the repository root:
 
@@ -65,8 +70,6 @@ Run the bundled example from the repository root:
   .\data\sample_ball `
   .\data\sample_block `
   1000 `
-  0.5 `
-  6 `
   union
 ```
 

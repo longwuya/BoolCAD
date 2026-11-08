@@ -1078,8 +1078,8 @@ lbfgsfloatval_t BooleanComputation::evaluate(
          //Scale the normal consistency energy to the same level as the particle system energy at the first iteration, and then only update the particle system energy by multiplying it with lambdaForBalance in the following iterations.
          if (m_iter_cnt == 1)
          {
-             lambda_NA =  fx_PS/ (fx_NA );
-             lambda_NA *= 1.0;
+             lambda_NA = fx_NA > 1e-30 ? fx_PS / fx_NA : 1.0;
+             lambda_NA *= m_lambda_ofnoraml_penalty;
              lambda_balance = 0.98;
          }
          if (m_iter_cnt >= 2)

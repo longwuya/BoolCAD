@@ -155,15 +155,14 @@ void MixObjModel(string fileName1, string fileName2)
     outputFile.close();
 }
 
-// Resolve the Boolean operation from the optional sixth CLI argument.
-// Keeping subtraction as the default preserves the previous command line.
+// Resolve the Boolean operation from the optional fourth CLI argument.
 int resolveBooleanType(int argc, char** argv)
 {
-    if (argc <= 6) {
-        return 3;
+    if (argc <= 4) {
+        return 1;
     }
 
-    std::string operation = argv[6];
+    std::string operation = argv[4];
     std::transform(operation.begin(), operation.end(), operation.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
@@ -186,103 +185,72 @@ int resolveBooleanType(int argc, char** argv)
 void main_approximate(int argc, char** argv)
 {
     const int base_point_num = (argc > 3) ? std::stoi(argv[3]) : 1000;
-    const double rate = (argc > 4) ? std::stod(argv[4]) : 0.0;
-    const bool single_sigma_run = argc > 5;
-    const double sigma_start = single_sigma_run ? std::stod(argv[5]) : 6.0;
-    const double sigma_end = single_sigma_run ? sigma_start : 24.0;
-    const double sigma_step = single_sigma_run ? 100000.1 : 3.0;
-    const int booleanType = resolveBooleanType(argc, argv); // 1-union, 2-intersection, 3-subtraction.
+    constexpr double intersection_rate = 0.01;
+    constexpr double sigma_rate = 6.0;
+    constexpr double factor_for_particle_system = 0.30;
+    constexpr double lambda_penalty = 0.0;
+    constexpr double lambda_normal = 5.0;
+    constexpr double sample_radius = 1.0;
+    constexpr double e_param_bottom = 0.0;
+    const int booleanType = resolveBooleanType(argc, argv);
 
-    for (int i = base_point_num; i <= base_point_num; i += 1000) {
+    const std::string model1_name = (argc > 1) ? argv[1] :
+        CGAL::data_file_path(R"(Intersection/Banana_1.off)").substr(
+            0, CGAL::data_file_path(R"(Intersection/plane_dense.off)").size() - 4);
+    const std::string model2_name = (argc > 2) ? argv[2] :
+        CGAL::data_file_path(R"(Intersection/Banana_2.off)").substr(
+            0, CGAL::data_file_path(R"(Intersection/plane_dense.off)").size() - 4);
 
-        //============= Parameter setup ==============//
-        int n_sample = i;          // Requested surface sample count.
+    CBaseModel inputModel[3];
+    cout << " check point 1:\n";
+    PreLoad(inputModel, 1, model1_name + ".obj", model2_name + ".obj");
+    cout << " check point 2:\n";
 
-        double lambda_penlaty = 0;     // Regularization penalty.
-        double sampleRadius = 1;       // Sampling radius.
+    intersection_test test1;
+    const clock_t start = clock();
+    test1.intersection_main(model1_name, model2_name, intersection_rate);
+    const double running_time = ((double)(clock() - start) / 1000);
+    cerr << "intersection_main running time = " << running_time << " seconds" << endl;
 
-        // Resolve input mesh paths from CLI arguments or defaults.
-        const std::string model1_name = (argc > 1) ? argv[1] : CGAL::data_file_path(R"(Intersection/Banana_1.off)").substr(0, CGAL::data_file_path(R"(Intersection/plane_dense.off)").size() - 4);
-        const std::string model2_name = (argc > 2) ? argv[2] : CGAL::data_file_path(R"(Intersection/Banana_2.off)").substr(0, CGAL::data_file_path(R"(Intersection/plane_dense.off)").size() - 4);
+    const std::vector<std::vector<Point_3>> intersection_segments =
+        test1.get_intersection_segments();
+    cout << " 求解得到的交线集中共包含 "
+         << intersection_segments.size() << " 条线段\n";
 
-        //=========== Preload input meshes ==========//
-        CBaseModel inputModel[3];  // [0] combined, [1] model A, [2] model B
-        cout << " check point 1:\n";
-        PreLoad(inputModel, 1, model1_name + ".obj", model2_name + ".obj");
-        cout << " check point 2:\n";
-        //========= Run Boolean reconstruction ==========//
-        // Parameter sweep setup.
-        double factor_ps_start = 0.30;
-        double factor_ps_end = 0.30;
-        double factor_ps_step = 0.05;
+    const string curtime = getCurrentTimestamp();
+    const string folderName =
+        extractAfterLastSlash(model1_name) + "---" +
+        extractAfterLastSlash(model2_name) + " --- " +
+        char(booleanType + '0') + " ---" + curtime;
+    createDirectory(folderName);
 
-        double e_param_for_seg_start = 0.0;
-        double e_param_for_seg_end = 0.2;
-        double e_param_for_seg_step = 0.01;
-
-        double e_param_for_ps_start = 1.0;
-        double e_param_for_ps_end = 1.0;
-        double e_param_for_ps_step = 0.01;
-
-
-        for (double intersection_rate = rate; intersection_rate <= rate; intersection_rate += 100000.1) // Intersection sampling density.
-            {
-            //=========== Compute mesh intersections ==========//
-            intersection_test test1;
-
-            // Start timing.
-            clock_t start = clock();
-            
-            test1.intersection_main(model1_name, model2_name, intersection_rate);  // Detect intersections and write intersection curves.
-
-            // Compute elapsed time.
-            double running_time = ((double)(clock() - start) / 1000);
-
-            cerr << "intersection_main running time = " << running_time << " seconds" << endl;
-
-
-            std::vector<std::vector<Point_3>> intersection_segments = test1.get_intersection_segments();
-            cout << " 求解得到的交线集中共包含 " << intersection_segments.size() << " 条线段\n";
-            std::vector<std::vector<Point_3>> intersection_empty;  // Use this empty input to disable intersection constraints.
-
-            for (double factor_for_particle_system = factor_ps_start; factor_for_particle_system <= factor_ps_end; factor_for_particle_system += factor_ps_step) // Particle-system distribution factor.
-            {
-
-                string curtime = getCurrentTimestamp();
-                // Build the output folder name.
-                string folderName = extractAfterLastSlash(model1_name) + "---" + extractAfterLastSlash(model2_name) + " --- " + char(booleanType + '0') + " ---" + curtime;
-                createDirectory(folderName);
-
-                for (double e_param_bottom = 0.0; e_param_bottom <= 0.0; e_param_bottom += 0.1) // Intersection-region density factor.
-                {
-
-                    for (double sigma_rate = sigma_start; sigma_rate <= sigma_end + 1e-9; sigma_rate += sigma_step) // Intersection-region weight factor.
-                    {
-
-                        BooleanComputation booleanComputation(
-                            inputModel,
-                            n_sample,
-                            factor_for_particle_system,
-                            0.0,
-                            lambda_penlaty,
-                            0.5,            // Default weight factor.
-                            sampleRadius,
-                            1,              // Enable adaptive sampling.
-                            booleanType,
-                            0.0,             // Subtraction weight factor.
-                            intersection_segments,
-                            intersection_rate,
-                            e_param_bottom,
-                            sigma_rate
-                        );
-                        cout << " check point 3:\n";
-                        booleanComputation.run(folderName, n_sample, factor_for_particle_system, lambda_penlaty, intersection_rate, booleanComputation.get_sample_num(), sigma_rate, e_param_bottom);
-                    }
-                }
-            }
-        }
-        
-    }
+    BooleanComputation booleanComputation(
+        inputModel,
+        base_point_num,
+        factor_for_particle_system,
+        0.0,
+        lambda_penalty,
+        0.5,
+        sample_radius,
+        lambda_normal,
+        booleanType,
+        0.0,
+        intersection_segments,
+        intersection_rate,
+        e_param_bottom,
+        sigma_rate
+    );
+    cout << " check point 3:\n";
+    booleanComputation.run(
+        folderName,
+        base_point_num,
+        factor_for_particle_system,
+        lambda_penalty,
+        intersection_rate,
+        booleanComputation.get_sample_num(),
+        sigma_rate,
+        e_param_bottom
+    );
 }
 
 
